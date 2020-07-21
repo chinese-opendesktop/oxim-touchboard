@@ -1,0 +1,696 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#使用中文必需加入編碼方式,預設ASCII
+
+import pygtk
+pygtk.require('2.0')
+import gtk
+import os
+import sys
+
+#判斷是否執行中
+reshell = os.popen("ps aux|grep  'python ./oxim-touchboard' |grep -v grep")
+a = reshell.read()
+if a.count('python ./oxim-touchboard') > 1:
+    os._exit(0)
+
+input = open('phonetab.txt' ,'r')
+phonetab = input.read()
+input.close()
+sumword = ""
+lab = gtk.Entry()
+lab.set_property("editable",False)
+
+entry = gtk.Entry()
+#entry.set_property('max-width-chars', 4)
+#entry.set_width_chars(4)
+#entry.set_activates_default(False)
+entry.set_property("editable",False) 
+
+class touchboard(gtk.Window):
+
+    def outputoxim(self, widget):
+	global entry
+	os.system("oxim-agent -I %s"%(entry.get_text()))
+	entry.set_text("")
+
+    def removeword(self, widget):
+	global entry, sumword, lab
+	if sumword != '' :
+            sumword = sumword[:len(sumword)-3]
+	    lab.set_text(sumword)
+	elif entry.get_text() == '':
+	    os.system("oxim-agent -k BackSpace")
+	else:
+	    #unistr = unicode(entry.get_text(), errors='replace')
+	    #entry.set_text(unistr[0:-1])
+	    entry.set_text(entry.get_text()[:len(entry.get_text())-3])
+
+    def symbolword(self, widget, inputword):
+        global sumword, lab
+        sumword = inputword
+        #lab.set_text(sumword)
+        lab.set_text(sumword)
+
+    def addkeyword(self, widget, inputword):
+	global sumword, lab
+	if phonetab.find("\n"+sumword+inputword,0) > -1:
+	    sumword = sumword + inputword  
+	    lab.set_text(sumword)
+	#print sumword
+	#print inputword
+
+    def chselword(self, widget, wordtable, wordtable2):
+	wordtable.hide()
+	wordtable2.show_all()
+
+    def chselword2(self, widget, wordtable, wordtable2):
+        wordtable.show_all()
+        wordtable2.hide()
+
+    def selectword(self, widget, wordbtn, keytable, wordtable, wordtable2):
+	global entry, lab, sumword
+	#判斷不為空及字數不超過20
+	if wordbtn.get_label() != "  " and len(entry.get_text()) < 60:
+ 	    entry.set_text(entry.get_text() + wordbtn.get_label())
+	sumword = ""
+	lab.set_text(sumword)
+	wordtable2.hide()
+	wordtable.hide()
+	keytable.show_all()
+	#print len(entry.get_text())
+
+    def noword(self, widget, wordtable, keytable):
+        sumword = ""
+        wordtable.hide()
+        keytable.show_all()
+
+    def findword(self, keyword, keytable, wordtable, wordbtn, wordtable2, wordbtn2):
+	global sumword
+	#print sumword
+	if sumword != '':
+	    key_start = phonetab.find("\n"+sumword,0)
+	    key_end = phonetab.find("\n", key_start+1)
+	    #print phonetab[key_start:key_end]
+	    selword = phonetab[key_start:key_end].split(' ')#轉list
+	    sumword = ""
+	
+	    if key_start > -1:
+	        keytable.hide()#輸入後hide原本的button
+	        ###########修改選字button#####
+	        selword = selword[1:]
+	        #print s
+	        allwd = len(selword)
+	        flag = 0
+                for x in range(4):
+                    for y in range(11):
+		        flag += 1
+		        '''原最後一鍵下頁功能
+		        if x*11+y <= 42:
+		            if flag <= allwd:
+		                wordbtn[x*11+y].set_label(selword[x*11+y])
+		            else:
+		                wordbtn[x*11+y].set_label('  ')
+		        elif x*11+y == 43:
+		    	    wordbtn[x*11+y].set_label('→')
+		        '''
+		        if x == 1 and y == 10 or x ==2 and y ==10:
+		            flag = flag -1
+		            continue
+		        if flag <= allwd:
+                            wordbtn[x*11+y].set_label(selword[flag-1])
+                        else:
+                            wordbtn[x*11+y].set_label('  ')
+
+	        #第二個選字box
+                for x in range(4):
+                    for y in range(11):
+                        flag += 1
+		        '''原最後一鍵上頁功能
+		        if x*11+y <= 42:
+                            if flag <= allwd+1:
+                                wordbtn2[x*11+y].set_label(selword[x*11+y+43])
+                            else:
+                                wordbtn2[x*11+y].set_label('  ')
+		        elif x*11+y == 43:
+                                wordbtn2[x*11+y].set_label('←')
+		        '''
+       		        if x == 1 and y == 10 or x ==2 and y ==10:
+		            flag = flag -1
+		            continue
+	                if flag <= allwd:
+                            wordbtn2[x*11+y].set_label(selword[flag-1])
+                        else:
+                            wordbtn2[x*11+y].set_label('  ')
+
+	        ###############################
+
+	        wordtable.show_all()#輸入後show選字的button
+
+    def keytable(self, inputwd):
+        table = {'a':'ㄇ', 'b':'ㄖ', 'c':'ㄏ', 'd':'ㄎ', 'e':'ㄍ',
+		 'f':'ㄑ', 'g':'ㄕ', 'h':'ㄘ', 'i':'ㄛ', 'j':'ㄨ', 
+		'k':'ㄜ', 'l':'ㄠ', 'm':'ㄩ', 'n':'ㄙ', 'o':'ㄟ', 
+		'p':'ㄣ', 'q':'ㄆ', 'r':'ㄐ', 's':'ㄋ', 't':'ㄔ', 
+		'u':'ㄧ', 'v':'ㄒ', 'w':'ㄊ', 'x':'ㄌ', 'y':'ㄗ', 
+		'z':'ㄈ', '1':'ㄅ', '2':'ㄉ', '3':'ˇ', '4':'ˋ', 
+		'5':'ㄓ', '6':'ˊ', '7':'˙', '8':'ㄚ', '9':'ㄞ', 
+		'0':'ㄢ', 'semicolon':'ㄤ', 'comma':'ㄝ', 'period':'ㄡ',
+		'slash':'ㄥ', 'space':''}
+        return table[inputwd]
+
+	#鍵盤功能
+    def catch_keyboard(self, window, event, keytable, wordtable, wordbtn, wordtable2, wordbtn2):
+        keyval = event.keyval
+        keyname = gtk.gdk.keyval_name(keyval)
+        wd =  self.keytable(keyname)
+	if wd in ['','ˊ','ˇ','ˋ','˙']:
+            self.addkeyword('', wd)
+	    self.findword('', keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	else:
+	    self.addkeyword('', wd)
+
+    def box_image( self, stock_id, label_text):#有圖的Button
+
+        #建立一個box,在丟入Image 跟label 
+        box1 = gtk.HBox(False, 0)
+        box1.set_border_width(2)
+
+        image = gtk.Image()
+        image.set_from_stock( stock_id, 2)
+
+        label = gtk.Label(label_text)
+
+        box1.pack_start(image, 0, 0, 1)
+        box1.pack_start(label, 0, 0, 1)
+
+        image.show()
+        label.show()
+        return box1
+
+    def __init__(self):
+	global sumword, lab
+	#gtk.Window.__init__(self, gtk.WINDOW_POPUP)
+	window = gtk.Window()#gtk.RESPONSE_NONE)
+	#window = gobject.new(gtk.Window, resizable=FALSE)
+	window.set_decorated(False)
+	xscreen = window.get_screen()
+	#寛與螢幕同,高為一半
+	window.set_default_size(xscreen.get_width(), xscreen.get_height()/3)
+	window.connect('destroy', gtk.main_quit)
+	#window.set_allow_grow(0)
+	window.set_keep_above(True)
+	window.set_property("accept-focus", False)
+	#window.set_resizable(1)
+	#window.set_position(gtk.WIN_POS_CENTER)
+	window.move(0, xscreen.get_height()/3*2) #移動到螢幕的一半
+	#window.set_position(gtk.WIN_POS_CENTER_ALWAYS)
+	window.set_border_width(8)	
+	#window.set_title("oxim-touchboard")
+	window.set_opacity(0.7)
+	window.stick()	
+	
+	vbox = gtk.VBox()
+	#vbox.set_visible(False)
+	#vbox.set_child_visible(False)
+	window.add(vbox)
+	keytable = gtk.Table(5, 35, True)#False)	
+	#keytable = gtk.VBox()#把hbox包在一起,方便hide
+	
+	#############建立選字button########
+	wordtable = gtk.Table(5, 35, True)#False)	
+        #wordtable = gtk.VBox()#選字box
+        wordbtn = []
+	wordtable2 = gtk.Table(5, 35, True)#False)	
+        #wordtable2 = gtk.VBox()#選字box
+        wordbtn2 = []
+
+	for x in range(4):
+	    flag = x
+            #wordtable = gtk.HBox()
+            for y in range(11):
+		'''
+                if x*11+y == 43:#設定最後一個button為下一頁
+		    #print x*y
+		    wordbtn.append(gtk.Button("  "))
+                    wordbtn[x*11+y].connect("clicked",self.chselword, wordtable, wordtable2)
+		    #print 'a'
+		else:
+		    wordbtn.append(gtk.Button("  "))
+		    wordbtn[x*11+y].connect("clicked",self.selectword, wordbtn[x*11+y], keytable, wordtable, wordtable2)
+		    #print x*11+y
+		'''
+		if x == 1 and y == 10 or x ==2 and y ==10:
+		    wordbtn.append("")
+		    continue
+		wordbtn.append(gtk.Button("  "))
+		wordbtn[x*11+y].connect("clicked",self.selectword, wordbtn[x*11+y], keytable, wordtable, wordtable2)
+		wordtable.attach(wordbtn[x*11+y], flag, flag+3, x, x+1)
+		flag = flag + 3
+                #wordtable.pack_start(wordbtn[x*11+y], 1, 1, 2)
+            #wordtable.pack_start(wordtable, 1, 1, 5)
+	#空白鍵button為下一頁
+	#wordtable = gtk.HBox()
+	wordbtn.append(gtk.Button("下一頁"))	
+	wordbtn[44].connect("clicked",self.chselword, wordtable, wordtable2)
+	flag = 9
+	wordtable.attach(wordbtn[44], flag, flag+15, 4, 5)
+	#wordtable.pack_start(wordbtn[44], 1, 1, 2)
+	#wordtable.pack_start(wordtable, 1, 1, 5)
+
+	#wordtable.show_all()
+	#選字第二頁
+        for x in range(4):
+	    flag = x
+            #wordtable = gtk.HBox()
+            for y in range(11):
+		'''
+                if x*11+y == 43:#設定最後一個button為上一頁
+                    #print x*y
+		    wordbtn2.append(gtk.Button("  "))
+                    wordbtn2[x*11+y].connect("clicked",self.chselword2, wordtable, wordtable2)
+                    #print 'a'
+                else:
+		    wordbtn2.append(gtk.Button("  "))
+                    wordbtn2[x*11+y].connect("clicked",self.selectword, wordbtn2[x*11+y], keytable, wordtable2, wordtable)
+		'''
+		if x == 1 and y == 10 or x ==2 and y ==10:
+		    wordbtn2.append("")
+		    continue 
+		wordbtn2.append(gtk.Button("  "))
+		wordbtn2[x*11+y].connect("clicked",self.selectword, wordbtn2[x*11+y], keytable, wordtable2, wordtable)
+       		wordtable2.attach(wordbtn2[x*11+y], flag, flag+3, x, x+1)
+		flag = flag + 3
+                #wordtable.pack_start(wordbtn2[x*11+y], 1, 1, 2)
+            #wordtable2.pack_start(wordtable, 1, 1, 5)
+	#空白鍵:button為上一頁
+        #wordtable = gtk.HBox()
+        wordbtn2.append(gtk.Button("上一頁"))
+	wordbtn2[44].connect("clicked",self.chselword2, wordtable, wordtable2)
+	flag = 9
+	wordtable2.attach(wordbtn2[44], flag, flag+15, 4, 5)	
+	#flag =flag +3
+	#wordtable.pack_start(wordbtn2[44], 1, 1, 2)
+        #wordtable2.pack_start(wordtable, 1, 1, 5)
+	#wordtable2.show_all()
+
+	################################ 
+	
+	#hbox0 = gtk.HBox()
+	#hbox00 = gtk.HBox(True)
+	
+	#hbox00.pack_start(entry, 1, 1, 0)
+	#hbox00.pack_start(lab, 1, 1, 0)	
+	#hbox0.pack_start(hbox00, 1, 1, 0)	
+	'''
+	headtable = gtk.Table(1, 35, True)#False)
+	headtable.attach(entry, 0, 15, 0, 1)	
+	
+        btn = gtk.Button("送出")
+        btn.connect("clicked",self.outputoxim)
+	headtable.attach(btn, 15, 17, 0, 1)	
+        #hbox0.pack_start(btn, 0, 0, 2)
+
+	headtable.attach(lab, 17, 32, 0, 1)
+	
+	btn = gtk.Button("刪除")
+        btn.connect("clicked",self.removeword)
+	headtable.attach(btn, 32, 34, 0, 1)	
+        #hbox0.pack_start(btn, 0, 0, 2)
+	
+	box = gtk.HBox()
+	box = self.box_image( "gtk-close", "")
+	btn = gtk.Button()
+	btn.add(box)
+	btn.connect("clicked", gtk.main_quit)
+	headtable.attach(btn, 34, 35, 0, 1)	
+	#hbox0.pack_start(btn, 0, 0, 2)	
+	
+	vbox.pack_start(headtable, 0, 0, 2)
+	'''
+	headtable = gtk.Table(1, 35, True)#False)
+	headtable.attach(entry, 0, 19, 0, 1)	
+	
+        btn = gtk.Button("送出")
+        btn.connect("clicked",self.outputoxim)
+	headtable.attach(btn, 19, 24, 0, 1)	
+        #hbox0.pack_start(btn, 0, 0, 2)
+
+	headtable.attach(lab, 24, 29, 0, 1)
+	
+	btn = gtk.Button("刪除")
+        btn.connect("clicked",self.removeword)
+	headtable.attach(btn, 29, 33, 0, 1)	
+        #hbox0.pack_start(btn, 0, 0, 2)
+	
+	box = gtk.HBox()
+	box = self.box_image( "gtk-close", "")
+	btn = gtk.Button()
+	btn.add(box)
+	btn.connect("clicked", gtk.main_quit)
+	headtable.attach(btn, 33, 35, 0, 1)	
+	#hbox0.pack_start(btn, 0, 0, 2)	
+	
+	vbox.pack_start(headtable, 0, 0, 2)
+		
+	'''
+	table = gtk.Table(10, 1, 0)
+	table.set_col_spacings(10)	
+       	#hbox0.pack_start(entry, 1, 0, 2)
+	table.attach(entry, 0, 5, 0, 1, xoptions = gtk.FILL)
+	#btn = gtk.Button()
+	#btn.add(lab)
+        btn = gtk.Button("送出")
+        btn.connect("clicked",self.outputoxim)
+	table.attach(btn, 5, 7, 0, 1, xoptions = gtk.FILL)
+        #hbox0.pack_start(btn, 1, 0, 2)
+        #keytable.pack_start(hbox0, 1, 1, 5)
+
+	#hbox0.pack_start(lab, 1, 0, 0)	
+	table.attach(lab, 7, 9, 0, 1, xoptions = gtk.FILL)
+	
+        btn = gtk.Button("←")
+        btn.connect("clicked",self.removeword)
+	table.attach(btn, 9, 10, 0, 1, xoptions = gtk.FILL)
+        hbox0.pack_start(table, 1, 0, 2)
+	'''
+	#keytable.pack_start(hbox0, 1, 1, 5)
+	#vbox.pack_start(entry, 0, 0, 5)
+	#vbox.pack_start(lab, 0, 0, 5)
+	#entry.show()
+	#lab.show()
+		
+	#hbox1 = gtk.HBox()
+	#keytable = keytable
+	flag =0
+
+	btn = gtk.Button("ㄅ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word )
+	#print inputword
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+	
+	btn = gtk.Button("ㄉ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ˇ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ˋ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ㄓ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ˊ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("˙")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ㄚ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ㄞ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ㄢ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)	
+	flag =flag +3
+
+	btn = gtk.Button("ㄦ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 0, 1)
+	flag =flag +3
+	#第一行鍵
+
+	flag = 1
+	btn = gtk.Button("ㄆ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+	
+	btn = gtk.Button("ㄊ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄍ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄐ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄔ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄗ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄧ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄛ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄟ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄣ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+	'''
+	btn = gtk.Button("←")
+	btn.connect("clicked",self.removeword)
+	keytable.attach(btn, flag, flag+3, 1, 2)
+        flag =flag +3	
+	'''
+	#第二行鍵
+
+	flag = 2	
+	#hbox3 = gtk.HBox()
+	btn = gtk.Button("ㄇ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄋ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄎ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄑ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄕ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄘ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄨ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄜ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄠ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄤ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+	'''	
+	btn = gtk.Button("關閉", stock='gtk-close')
+	btn.connect("clicked",self.outputoxim)
+	keytable.attach(btn, flag, flag+3, 2, 3)
+        flag =flag +3	
+	'''
+	#第三行鍵
+
+	flag = 3
+	#hbox4 = gtk.HBox()
+	btn = gtk.Button("ㄈ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄌ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄏ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄒ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄖ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄙ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄩ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄝ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄡ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("ㄥ")
+	word = btn.get_label()
+	btn.connect("clicked",self.addkeyword, word)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3	
+
+	btn = gtk.Button("符號")
+	word = btn.get_label()
+        btn.connect("clicked",self.symbolword, word)
+        btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	keytable.attach(btn, flag, flag+3, 3, 4)
+        flag =flag +3
+	#第四行鍵
+
+	flag =9
+		
+        btn = gtk.Button("一聲")
+        word = " " 
+        btn.connect("clicked",self.addkeyword, word)
+        btn.connect("clicked", self.findword, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+        keytable.attach(btn, flag, flag+15, 4, 5)
+        flag =flag +3
+	#第五行鍵
+	#keytable.show_all()
+	#vbox.pack_start(keytable, 1, 1, 5)
+	vbox.pack_start(keytable, 1, 1, 5)
+	vbox.pack_start(wordtable, 1, 1, 5)#選字box,先不show
+	vbox.pack_start(wordtable2, 1, 1, 5)#選字box2,先不show
+	
+	#wordtable.show_all()
+	headtable.show_all()
+	#wordtable.show_all()
+	#wordtable2.show_all()
+	keytable.show_all()
+	vbox.show()
+	#window.add(vbox)
+	#鍵盤輸入
+	#window.connect('key-press-event', self.catch_keyboard, keytable, wordtable, wordbtn, wordtable2, wordbtn2)
+	window.show()
+	#window.show_all()
+def main():
+    gtk.main()
+if __name__ == "__main__":
+    touchboard()
+    main()

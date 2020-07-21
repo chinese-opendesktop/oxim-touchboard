@@ -1,1 +1,1 @@
-# oxim-touchboard
+# Touchboard for OXIM
